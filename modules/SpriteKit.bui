@@ -1,0 +1,288 @@
+Private Sub CheckSpriteNumber(value As Double, limit As Double)
+    If Not (value >= -limit And value <= limit) Then Throw New InvalidArgumentException("Sprite number is nonfinite or outside its bound")
+End Sub
+
+''' Top-left camera in world units. Larger viewports anchor at zero.
+Public Class SpriteCamera
+    Private Property mX As Double
+    Private Property mY As Double
+    Private Property mWorldWidth As Double
+    Private Property mWorldHeight As Double
+    Private Property mWidth As Double
+    Private Property mHeight As Double
+
+    Public Sub Constructor(worldWidth As Double, worldHeight As Double, width As Double, height As Double)
+        CheckSpriteNumber(worldWidth, 1000000000.0)
+        CheckSpriteNumber(worldHeight, 1000000000.0)
+        CheckSpriteNumber(width, 1000000.0)
+        CheckSpriteNumber(height, 1000000.0)
+        If worldWidth <= 0.0 Or worldHeight <= 0.0 Or width <= 0.0 Or height <= 0.0 Then Throw New InvalidArgumentException("Camera dimensions must be positive")
+        mWorldWidth = worldWidth
+        mWorldHeight = worldHeight
+        mWidth = width
+        mHeight = height
+    End Sub
+
+    Public Property X As Double
+        Get
+            Return mX
+        End Get
+    End Property
+    Public Property Y As Double
+        Get
+            Return mY
+        End Get
+    End Property
+    Public Property Width As Double
+        Get
+            Return mWidth
+        End Get
+    End Property
+    Public Property Height As Double
+        Get
+            Return mHeight
+        End Get
+    End Property
+
+    Public Sub MoveTo(x As Double, y As Double)
+        CheckSpriteNumber(x, 1000000000.0)
+        CheckSpriteNumber(y, 1000000000.0)
+        mX = Math.Max(0.0, Math.Min(x, Math.Max(0.0, mWorldWidth - mWidth)))
+        mY = Math.Max(0.0, Math.Min(y, Math.Max(0.0, mWorldHeight - mHeight)))
+    End Sub
+    Public Sub CenterOn(x As Double, y As Double)
+        CheckSpriteNumber(x, 999000000.0)
+        CheckSpriteNumber(y, 999000000.0)
+        Me.MoveTo(x - mWidth / 2.0, y - mHeight / 2.0)
+    End Sub
+    Public Function ScreenX(worldX As Double) As Double
+        CheckSpriteNumber(worldX, 1000000000.0)
+        Return worldX - mX
+    End Function
+    Public Function ScreenY(worldY As Double) As Double
+        CheckSpriteNumber(worldY, 1000000000.0)
+        Return worldY - mY
+    End Function
+    Public Function WorldX(screenX As Double) As Double
+        CheckSpriteNumber(screenX, 1000000.0)
+        Return screenX + mX
+    End Function
+    Public Function WorldY(screenY As Double) As Double
+        CheckSpriteNumber(screenY, 1000000.0)
+        Return screenY + mY
+    End Function
+End Class
+
+''' Mutable actor; dimensions and motion change only through checked methods.
+Public Class SpriteActor
+    Private Property mX As Double
+    Private Property mY As Double
+    Private Property mWidth As Double
+    Private Property mHeight As Double
+    Private Property mDepth As Double
+    Private Property mVX As Double
+    Private Property mVY As Double
+    Private Property mFrames As Array Of Picture
+    Private Property mFrame As Integer = 0
+    Private Property mFrameSeconds As Double = 0.1
+    Private Property mElapsed As Double = 0.0
+    Private Property mTint As Color
+    Public Property Tint As Color
+        Get
+            Return mTint
+        End Get
+        Set
+            If value Is Nil Then Throw New InvalidArgumentException("Tint cannot be Nil")
+            mTint = value
+        End Set
+    End Property
+    Public Property Visible As Boolean = True
+
+    Public Sub Constructor(x As Double, y As Double, width As Double, height As Double, depth As Double, tint As Color)
+        Me.Place(x, y)
+        CheckSpriteNumber(width, 1000000.0)
+        CheckSpriteNumber(height, 1000000.0)
+        If width <= 0.0 Or height <= 0.0 Then Throw New InvalidArgumentException("Sprite size must be positive")
+        mWidth = width
+        mHeight = height
+        Me.SetDepth(depth)
+        Me.Tint = tint
+    End Sub
+    Public Property X As Double
+        Get
+            Return mX
+        End Get
+    End Property
+    Public Property Y As Double
+        Get
+            Return mY
+        End Get
+    End Property
+    Public Property Width As Double
+        Get
+            Return mWidth
+        End Get
+    End Property
+    Public Property Height As Double
+        Get
+            Return mHeight
+        End Get
+    End Property
+    Public Property Depth As Double
+        Get
+            Return mDepth
+        End Get
+    End Property
+    Public Property FrameIndex As Integer
+        Get
+            Return mFrame
+        End Get
+    End Property
+
+    Public Sub Place(x As Double, y As Double)
+        CheckSpriteNumber(x, 1000000000.0)
+        CheckSpriteNumber(y, 1000000000.0)
+        mX = x
+        mY = y
+    End Sub
+    Public Sub SetDepth(depth As Double)
+        CheckSpriteNumber(depth, 1000000000.0)
+        mDepth = depth
+    End Sub
+    Public Sub SetVelocity(xPerSecond As Double, yPerSecond As Double)
+        CheckSpriteNumber(xPerSecond, 1000000.0)
+        CheckSpriteNumber(yPerSecond, 1000000.0)
+        mVX = xPerSecond
+        mVY = yPerSecond
+    End Sub
+    Public Sub SetFrames(frames As Array Of Picture, secondsPerFrame As Double)
+        CheckSpriteNumber(secondsPerFrame, 3600.0)
+        If secondsPerFrame < 0.000001 Or Array.Count(frames) > 4096 Then Throw New InvalidArgumentException("Frame duration/count out of bounds")
+        For Each frame As Picture In frames
+            If frame Is Nil Then Throw New InvalidArgumentException("Frame cannot be Nil")
+        Next
+        mFrames = Array.Clone(frames)
+        mFrameSeconds = secondsPerFrame
+        mFrame = 0
+        mElapsed = 0.0
+    End Sub
+    Public Function CurrentPicture() As Picture
+        If Array.Count(mFrames) = 0 Then Return Nil
+        Return mFrames(mFrame)
+    End Function
+    Public Sub CheckAdvance(deltaSeconds As Double)
+        If Not (deltaSeconds >= 0.0 And deltaSeconds <= 1.0) Then Throw New InvalidArgumentException("Delta must be finite in 0..1 seconds")
+        CheckSpriteNumber(mX + mVX * deltaSeconds, 1000000000.0)
+        CheckSpriteNumber(mY + mVY * deltaSeconds, 1000000000.0)
+    End Sub
+    Public Sub Advance(deltaSeconds As Double)
+        Me.CheckAdvance(deltaSeconds)
+        mX += mVX * deltaSeconds
+        mY += mVY * deltaSeconds
+        If Array.Count(mFrames) > 0 Then
+            Dim total As Double = mElapsed + deltaSeconds
+            Dim steps As Integer = Math.Floor(total / mFrameSeconds)
+            mFrame = (mFrame + steps) Mod Array.Count(mFrames)
+            mElapsed = total - steps * mFrameSeconds
+        End If
+    End Sub
+    Public Function Contains(worldX As Double, worldY As Double) As Boolean
+        CheckSpriteNumber(worldX, 1001000000.0)
+        CheckSpriteNumber(worldY, 1001000000.0)
+        Return Visible And worldX >= mX And worldY >= mY And worldX < mX + mWidth And worldY < mY + mHeight
+    End Function
+End Class
+
+Private Function CompareSpriteDepth(a As SpriteActor, b As SpriteActor) As Integer
+    If a.Depth < b.Depth Then Return -1
+    If a.Depth > b.Depth Then Return 1
+    Return 0
+End Function
+
+''' Stable insertion-order ties; all scene operations are synchronous.
+Public Class SpriteScene
+    Private Property mActors As Array Of SpriteActor
+    Private Property mCapacity As Integer
+    Public Sub Constructor(capacity As Integer = 4096)
+        If capacity < 1 Or capacity > 4096 Then Throw New InvalidArgumentException("Scene capacity must be 1..4096")
+        mCapacity = capacity
+    End Sub
+    Public Property Count As Integer
+        Get
+            Return Array.Count(mActors)
+        End Get
+    End Property
+    Public Sub Add(actor As SpriteActor)
+        If actor Is Nil Then Throw New InvalidArgumentException("Actor required")
+        If Me.Count >= mCapacity Then Throw New InvalidArgumentException("Scene is full")
+        For Each existing As SpriteActor In mActors
+            If existing Is actor Then Throw New InvalidArgumentException("Actor already in scene")
+        Next
+        Array.Append(mActors, actor)
+    End Sub
+    Public Function Remove(actor As SpriteActor) As Boolean
+        For i As Integer = 0 To Me.Count - 1
+            If mActors(i) Is actor Then
+                Array.RemoveAt(mActors, i)
+                Return True
+            End If
+        Next
+        Return False
+    End Function
+    Public Sub Clear()
+        Array.Clear(mActors)
+    End Sub
+    Public Function OrderedSprites() As Array Of SpriteActor
+        Dim actors As Array Of SpriteActor = Array.Clone(mActors)
+        Array.Sort(actors, AddressOf CompareSpriteDepth)
+        Return actors
+    End Function
+    Public Sub Advance(deltaSeconds As Double)
+        If Not (deltaSeconds >= 0.0 And deltaSeconds <= 1.0) Then Throw New InvalidArgumentException("Delta must be finite in 0..1 seconds")
+        For Each actor As SpriteActor In mActors
+            actor.CheckAdvance(deltaSeconds)
+        Next
+        For Each actor As SpriteActor In mActors
+            actor.Advance(deltaSeconds)
+        Next
+    End Sub
+    Public Function VisibleSprites(camera As SpriteCamera) As Array Of SpriteActor
+        If camera Is Nil Then Throw New InvalidArgumentException("Camera required")
+        Dim visible() As SpriteActor
+        For Each actor As SpriteActor In Me.OrderedSprites()
+            If actor.Visible And actor.X < camera.X + camera.Width And actor.Y < camera.Y + camera.Height And actor.X + actor.Width > camera.X And actor.Y + actor.Height > camera.Y Then
+                Array.Append(visible, actor)
+            End If
+        Next
+        Return visible
+    End Function
+    Public Function HitTest(screenX As Double, screenY As Double, camera As SpriteCamera) As SpriteActor
+        If camera Is Nil Then Throw New InvalidArgumentException("Camera required")
+        CheckSpriteNumber(screenX, 1000000.0)
+        CheckSpriteNumber(screenY, 1000000.0)
+        If screenX < 0.0 Or screenY < 0.0 Or screenX >= camera.Width Or screenY >= camera.Height Then Return Nil
+        Dim actors As Array Of SpriteActor = Me.VisibleSprites(camera)
+        For i As Integer = Array.Count(actors) - 1 To 0 Step -1
+            If actors(i).Contains(camera.WorldX(screenX), camera.WorldY(screenY)) Then Return actors(i)
+        Next
+        Return Nil
+    End Function
+    Public Sub Draw(g As IGraphics, camera As SpriteCamera)
+        If g Is Nil Or camera Is Nil Then Throw New InvalidArgumentException("Graphics and camera required")
+        Dim actors As Array Of SpriteActor = Me.VisibleSprites(camera)
+        g.Save()
+        Try
+            g.ClipToRect(0.0, 0.0, camera.Width, camera.Height)
+            For Each actor As SpriteActor In actors
+                Dim frame As Picture = actor.CurrentPicture()
+                If frame Is Nil Then
+                    g.FillRect(camera.ScreenX(actor.X), camera.ScreenY(actor.Y), actor.Width, actor.Height, actor.Tint)
+                Else
+                    g.DrawPicture(frame, camera.ScreenX(actor.X), camera.ScreenY(actor.Y), actor.Width, actor.Height)
+                End If
+            Next
+        Finally
+            g.Restore()
+        End Try
+    End Sub
+End Class

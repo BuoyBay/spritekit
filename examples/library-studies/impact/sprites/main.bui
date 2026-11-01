@@ -1,0 +1,82 @@
+Import spritekit
+
+Class SceneCanvas Inherits Canvas
+    Public Property Scene As SpriteScene
+    Public Property Camera As SpriteCamera
+    Private Property mTopDepth As Double = 10.0
+    Public Property Hero As SpriteActor
+    Handle Paint(g As Graphics)
+        g.FillRect(0.0, 0.0, Me.Width, Me.Height, Color.White)
+        Scene.Draw(g, Camera)
+        g.DrawString("Arrows move the camera; click a sprite to bring it forward", 12.0, 24.0, "Helvetica", 14.0, Color.Black)
+        g.DrawString("World 2000 x 1200 | camera " + String.From(Camera.X) + ", " + String.From(Camera.Y), 12.0, 45.0, "Helvetica", 12.0, Color.Black)
+    End Handle
+    Handle MouseDown(e As MouseEvent)
+        Dim picked As SpriteActor = Scene.HitTest(e.X, e.Y, Camera)
+        If Not (picked Is Nil) Then
+            mTopDepth += 1.0
+            picked.SetDepth(mTopDepth)
+        End If
+        Me.Focus()
+        Me.Invalidate()
+    End Handle
+End Class
+
+Class SceneClock Inherits Timer
+    Public Property Surface As SceneCanvas
+    Public Property LastTime As Double = 0.0
+    Public Overrides Sub NotifyTick()
+        Dim now As Double = System.Microseconds() / 1000000.0
+        Dim delta As Double = 0.0
+        If LastTime > 0.0 Then delta = Math.Max(0.0, Math.Min(0.1, now - LastTime))
+        LastTime = now
+        Surface.Scene.Advance(delta)
+        Dim x As Double = Surface.Camera.X
+        Dim y As Double = Surface.Camera.Y
+        If Keyboard.IsKeyDown(KeyName.Left) Then x -= 300.0 * delta
+        If Keyboard.IsKeyDown(KeyName.Right) Then x += 300.0 * delta
+        If Keyboard.IsKeyDown(KeyName.Up) Then y -= 300.0 * delta
+        If Keyboard.IsKeyDown(KeyName.Down) Then y += 300.0 * delta
+        Surface.Camera.MoveTo(x, y)
+        If Surface.Hero.X > 1900.0 Then Surface.Hero.Place(20.0, Surface.Hero.Y)
+        Surface.Invalidate()
+    End Sub
+End Class
+
+Class SceneWindow Inherits Window
+    Public Property Clock As SceneClock
+    Handle Closed()
+        Clock.Stop()
+        Application.Quit()
+    End Handle
+End Class
+
+Sub Main()
+    Dim window As New SceneWindow()
+    window.Title = "SpriteKit: reusable scenes and camera"
+    window.Move(100, 100, 800, 500)
+    Dim surface As New SceneCanvas()
+    surface.Move(0, 0, 800, 500)
+    surface.Scene = New SpriteScene()
+    surface.Camera = New SpriteCamera(2000.0, 1200.0, 800.0, 500.0)
+    For i As Integer = 0 To 99
+        Dim actor As New SpriteActor((i Mod 10) * 190.0 + 50.0, (i \ 10) * 110.0 + 70.0, 70.0, 60.0, i Mod 4, Color.RGB(0.2, 0.65, 0.3))
+        surface.Scene.Add(actor)
+    Next
+    Dim red As New Picture(16, 16)
+    red.Graphics.FillOval(0.0, 0.0, 16.0, 16.0, Color.Red)
+    Dim blue As New Picture(16, 16)
+    blue.Graphics.FillOval(0.0, 0.0, 16.0, 16.0, Color.Blue)
+    surface.Hero = New SpriteActor(80.0, 180.0, 80.0, 80.0, 10.0, Color.White)
+    surface.Hero.SetFrames([red, blue], 0.125)
+    surface.Hero.SetVelocity(90.0, 0.0)
+    surface.Scene.Add(surface.Hero)
+    window.AddSubview(surface)
+    window.Clock = New SceneClock()
+    window.Clock.Surface = surface
+    window.Clock.Period = 16
+    window.Clock.Start()
+    window.Show()
+    surface.Focus()
+    Application.Run()
+End Sub
