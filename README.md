@@ -1,4 +1,4 @@
-# Render ordered 2D sprite scenes and animation
+# Ordered 2D sprite scenes and animation
 
 A focused source-only 2D scene package extracted from the common needs demonstrated
 by the Strout scrolling, platform, RPG and layered-drag studies. Import `spritekit`.
