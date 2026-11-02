@@ -69,9 +69,6 @@ beyond its callback.
 
 ## Verify and run
 
-
-Maintainers run the private validation suite before release. See the repository README for public build instructions.
-
 The demo renders a scrolling
 world, moving animated Picture sprite and clickable layering through the package.
 Interactive appearance/input and other-platform runtime behavior are not covered
@@ -81,6 +78,5 @@ Future layers include spatial indexing, tile caching, input routing, collision,
 fixed-step accumulation and texture atlas rectangles. The separate physics work
 can compose with actor placement without a direct dependency. No GPU performance,
 3D/QD3D, sprite mask or full legacy API compatibility is promised.
-
 
 [Typed API](typed-api.md) · [Getting started](getting-started.md)

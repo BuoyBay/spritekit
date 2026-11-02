@@ -1,6 +1,6 @@
 # Render ordered 2D sprite scenes and animation
 
-A focused pure Buoy 2D scene package extracted from the common needs demonstrated
+A focused source-only 2D scene package extracted from the common needs demonstrated
 by the Strout scrolling, platform, RPG and layered-drag studies. Import `spritekit`.
 It provides shared scene/camera/animation/rendering behavior rather than a native
 SpriteSurface or GPU engine.
@@ -53,8 +53,6 @@ On your own machine, install Buoy and run:
 ```sh
 buoy ai init --both
 ```
-
-The generated agent files and editor settings stay local and are ignored by Git.
 
 ## Contributing
 

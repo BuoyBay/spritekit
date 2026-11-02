@@ -61,11 +61,7 @@ beyond its callback.
 
 ## Verify and run
 
-
-Maintainers run the private validation suite before release. See the repository README for public build instructions.
-
-The demo (not included in this repository) renders a scrolling
-world, moving animated Picture sprite and clickable layering through the package.
+The [sprite demo](../examples/library-studies/impact/sprites/main.bui) renders a scrolling world, a moving animated Picture sprite and clickable layering.
 Interactive appearance/input and other-platform runtime behavior are not covered
 by compiler checks. See [provenance](../PROVENANCE.md).
 
